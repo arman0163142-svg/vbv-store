@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#7A2131">
+<title>ভাই বোন ভ্যারাইটিজ স্টোর</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Da+2:wght@500;600;700;800&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ===================== LOADING ===================== -->
+<div id="screen-loading" class="screen screen-loading active">
+  <div class="loading-mark">
+    <div class="loading-book">
+      <div class="loading-spine"></div>
+    </div>
+    <p class="loading-text">খাতা খোলা হচ্ছে…</p>
+  </div>
+</div>
+
+<!-- ===================== ONBOARDING: WELCOME ===================== -->
+<div id="screen-welcome" class="screen screen-welcome">
+  <div class="welcome-wrap">
+    <div class="welcome-emblem">ভা<span>বো</span></div>
+    <h1 class="welcome-title">ভাই বোন ভ্যারাইটিজ স্টোর</h1>
+    <p class="welcome-sub">দোকানের হিসাবের ডিজিটাল খাতা — সবার জন্য, সব সময়ের জন্য</p>
+    <div class="welcome-actions">
+      <button class="btn btn-primary btn-lg" id="btn-goto-create">নতুন দোকান খুলুন</button>
+      <button class="btn btn-ghost btn-lg" id="btn-goto-join">দোকানে যোগ দিন (কোড আছে)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ONBOARDING: CREATE SHOP ===================== -->
+<div id="screen-create" class="screen screen-form">
+  <div class="form-wrap">
+    <button class="back-link" data-back="screen-welcome">← ফিরে যান</button>
+    <h2 class="form-title">নতুন দোকান তৈরি করুন</h2>
+    <p class="form-hint">আপনি হবেন এই দোকানের মালিক। একটা কোড তৈরি হবে যা স্টাফদের সাথে শেয়ার করবেন।</p>
+    <label class="field-label">দোকানের নাম</label>
+    <input type="text" id="input-shop-name" class="field-input" placeholder="যেমনঃ ভাই বোন ভ্যারাইটিজ স্টোর">
+    <label class="field-label">আপনার নাম</label>
+    <input type="text" id="input-owner-name" class="field-input" placeholder="আপনার নাম লিখুন">
+    <label class="field-label">দোকানের ঠিকানা (ঐচ্ছিক)</label>
+    <input type="text" id="input-shop-address" class="field-input" placeholder="যেমনঃ মিরপুর-১০, ঢাকা">
+    <button class="btn btn-primary btn-lg btn-block" id="btn-create-shop">দোকান তৈরি করুন</button>
+    <p class="form-error" id="create-error"></p>
+  </div>
+</div>
+
+<!-- ===================== ONBOARDING: JOIN SHOP ===================== -->
+<div id="screen-join" class="screen screen-form">
+  <div class="form-wrap">
+    <button class="back-link" data-back="screen-welcome">← ফিরে যান</button>
+    <h2 class="form-title">দোকানে যোগ দিন</h2>
+    <p class="form-hint">মালিকের দেওয়া ৬ সংখ্যার কোড দিন</p>
+    <label class="field-label">দোকানের কোড</label>
+    <input type="text" id="input-join-code" class="field-input field-code" placeholder="যেমনঃ ৪৭২৯১৮" maxlength="6" inputmode="numeric">
+    <label class="field-label">আপনার নাম</label>
+    <input type="text" id="input-staff-name" class="field-input" placeholder="আপনার নাম লিখুন">
+    <button class="btn btn-primary btn-lg btn-block" id="btn-join-shop">যোগ দিন</button>
+    <p class="form-error" id="join-error"></p>
+  </div>
+</div>
+
+<!-- ===================== MAIN APP ===================== -->
+<div id="app-shell" class="app-shell">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="topbar-shop">
+      <span class="topbar-shopname" id="topbar-shopname">দোকান</span>
+      <span class="topbar-staff" id="topbar-staffname">—</span>
+    </div>
+    <div class="topbar-status">
+      <span class="sync-dot" id="sync-dot"></span>
+      <span class="sync-label" id="sync-label">সিঙ্ক হচ্ছে</span>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- ---------- DASHBOARD ---------- -->
+    <section class="screen-panel active" id="panel-dashboard">
+      <div class="shop-info-card" id="shop-info-card">
+        <div class="shop-info-head">
+          <div>
+            <h2 class="shop-info-name" id="shop-info-name">দোকান</h2>
+            <p class="shop-info-address" id="shop-info-address"></p>
+          </div>
+          <button class="edit-icon-btn" id="btn-edit-shop-info">✎</button>
+        </div>
+        <div class="date-row">
+          <div class="date-chip"><span class="date-chip-label">ইংরেজি</span><span id="date-en"></span></div>
+          <div class="date-chip"><span class="date-chip-label">বাংলা</span><span id="date-bn"></span></div>
+          <div class="date-chip"><span class="date-chip-label">আরবি</span><span id="date-ar"></span></div>
+        </div>
+        <div class="clock-row" id="clock-now"></div>
+        <div class="contacts-row" id="shop-info-contacts"></div>
+        <div class="owner-photos-row" id="shop-info-photos"></div>
+      </div>
+
+      <h2 class="panel-title">আজকের হিসাব</h2>
+      <div class="stat-grid">
+        <div class="stat-card stat-red">
+          <span class="stat-label">আজকের বিক্রি</span>
+          <span class="stat-value" id="stat-today-sales">৳০</span>
+        </div>
+        <div class="stat-card stat-gold">
+          <span class="stat-label">আজকের বাকি</span>
+          <span class="stat-value" id="stat-today-due">৳০</span>
+        </div>
+        <div class="stat-card stat-green">
+          <span class="stat-label">মোট পাওনা (বাকি)</span>
+          <span class="stat-value" id="stat-total-due">৳০</span>
+        </div>
+        <button class="stat-card stat-rust stat-clickable" id="stat-low-stock-card">
+          <span class="stat-label">কম স্টক পণ্য</span>
+          <span class="stat-value" id="stat-low-stock">০</span>
+          <span class="stat-tap-hint">তালিকা দেখতে ট্যাপ করুন ›</span>
+        </button>
+      </div>
+
+      <h3 class="section-subtitle">সাম্প্রতিক বিক্রয়</h3>
+      <div class="list-stack" id="recent-sales-list"></div>
+
+      <h3 class="section-subtitle">কম স্টকে থাকা পণ্য</h3>
+      <div class="list-stack" id="low-stock-list"></div>
+    </section>
+
+    <!-- ---------- POS ---------- -->
+    <section class="screen-panel" id="panel-pos">
+      <h2 class="panel-title">বিক্রয় করুন</h2>
+
+      <input type="text" id="pos-search" class="field-input search-input" placeholder="🔍 পণ্য খুঁজুন…">
+      <div class="pos-product-grid" id="pos-product-grid"></div>
+
+      <div class="cart-drawer" id="cart-drawer">
+        <div class="cart-handle" id="cart-handle">
+          <span id="cart-count">০ টি পণ্য</span>
+          <span id="cart-total">৳০</span>
+          <span class="cart-arrow">▲</span>
+        </div>
+        <div class="cart-body" id="cart-body">
+          <div class="cart-items" id="cart-items"></div>
+
+          <div class="cart-customer">
+            <label class="field-label">কাস্টমার (ঐচ্ছিক)</label>
+            <select id="cart-customer-select" class="field-input">
+              <option value="">নগদ কাস্টমার (নাম ছাড়া)</option>
+              <option value="__new__">+ নতুন কাস্টমারের নাম লিখুন</option>
+            </select>
+            <input type="text" id="cart-new-customer-name" class="field-input" placeholder="কাস্টমারের নাম লিখুন" style="display:none; margin-top:8px;">
+            <input type="text" id="cart-new-customer-phone" class="field-input" placeholder="মোবাইল নম্বর (ঐচ্ছিক)" style="display:none; margin-top:8px;">
+          </div>
+
+          <div class="cart-payment">
+            <label class="field-label">পেমেন্ট</label>
+            <div class="payment-toggle">
+              <button class="pay-btn active" data-pay="full">সম্পূর্ণ নগদ</button>
+              <button class="pay-btn" data-pay="partial">আংশিক</button>
+              <button class="pay-btn" data-pay="due">সম্পূর্ণ বাকি</button>
+            </div>
+            <div class="partial-amount-wrap" id="partial-amount-wrap" style="display:none;">
+              <label class="field-label">জমা পরিমাণ</label>
+              <input type="number" id="cart-partial-amount" class="field-input" placeholder="৳ যত টাকা জমা দিলো">
+            </div>
+          </div>
+
+          <div class="cart-summary">
+            <div class="cart-summary-row"><span>মোট</span><span id="cart-summary-total">৳০</span></div>
+            <div class="cart-summary-row"><span>জমা</span><span id="cart-summary-paid">৳০</span></div>
+            <div class="cart-summary-row cart-summary-due"><span>বাকি থাকবে</span><span id="cart-summary-due">৳০</span></div>
+          </div>
+
+          <button class="btn btn-primary btn-lg btn-block" id="btn-confirm-sale">বিক্রয় নিশ্চিত করুন</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- INVENTORY ---------- -->
+    <section class="screen-panel" id="panel-inventory">
+      <div class="panel-header-row">
+        <h2 class="panel-title">ইনভেন্টরি</h2>
+        <button class="btn btn-primary btn-sm" id="btn-add-product">+ নতুন পণ্য</button>
+      </div>
+      <input type="text" id="inventory-search" class="field-input search-input" placeholder="🔍 পণ্য খুঁজুন…">
+      <div class="filter-bar" id="inventory-filter-bar" style="display:none;">
+        <span>শুধু কম স্টক পণ্য দেখানো হচ্ছে</span>
+        <button id="btn-clear-inventory-filter">✕ ফিল্টার সরান</button>
+      </div>
+      <div class="list-stack" id="inventory-list"></div>
+    </section>
+
+    <!-- ---------- CUSTOMER LEDGER ---------- -->
+    <section class="screen-panel" id="panel-ledger">
+      <div class="panel-header-row">
+        <h2 class="panel-title">বাকি খাতা</h2>
+        <button class="btn btn-primary btn-sm" id="btn-add-customer">+ নতুন কাস্টমার</button>
+      </div>
+      <input type="text" id="ledger-search" class="field-input search-input" placeholder="🔍 কাস্টমার খুঁজুন…">
+      <div class="list-stack" id="ledger-list"></div>
+    </section>
+
+    <!-- ---------- EXPENSES ---------- -->
+    <section class="screen-panel" id="panel-expenses">
+      <div class="panel-header-row">
+        <h2 class="panel-title">খরচ</h2>
+        <button class="btn btn-primary btn-sm" id="btn-add-expense">+ নতুন খরচ</button>
+      </div>
+      <div class="stat-card stat-rust stat-wide">
+        <span class="stat-label">এই মাসের মোট খরচ</span>
+        <span class="stat-value" id="stat-month-expense">৳০</span>
+      </div>
+      <div class="list-stack" id="expenses-list"></div>
+    </section>
+
+  </main>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-panel="panel-dashboard">
+      <span class="nav-icon">🏠</span><span class="nav-label">ড্যাশবোর্ড</span>
+    </button>
+    <button class="nav-btn" data-panel="panel-pos">
+      <span class="nav-icon">🧾</span><span class="nav-label">বিক্রয়</span>
+    </button>
+    <button class="nav-btn" data-panel="panel-inventory">
+      <span class="nav-icon">📦</span><span class="nav-label">ইনভেন্টরি</span>
+    </button>
+    <button class="nav-btn" data-panel="panel-ledger">
+      <span class="nav-icon">📖</span><span class="nav-label">বাকি খাতা</span>
+    </button>
+    <button class="nav-btn" data-panel="panel-expenses">
+      <span class="nav-icon">💸</span><span class="nav-label">খরচ</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ===================== MODALS ===================== -->
+<div class="modal-overlay" id="modal-overlay">
+
+  <div class="modal" id="modal-product">
+    <div class="modal-head"><h3 id="modal-product-title">নতুন পণ্য</h3><button class="modal-close" data-close>✕</button></div>
+    <div class="modal-body">
+      <label class="field-label">পণ্যের নাম</label>
+      <input type="text" id="pf-name" class="field-input" placeholder="যেমনঃ চিনি">
+      <label class="field-label">একক (কেজি/লিটার/পিস)</label>
+      <input type="text" id="pf-unit" class="field-input" placeholder="যেমনঃ কেজি">
+      <div class="field-row">
+        <div>
+          <label class="field-label">খুচরা দাম (৳)</label>
+          <input type="number" id="pf-retail-price" class="field-input" placeholder="০">
+        </div>
+        <div>
+          <label class="field-label">পাইকারি দাম (৳)</label>
+          <input type="number" id="pf-wholesale-price" class="field-input" placeholder="০">
+        </div>
+      </div>
+      <label class="field-label">পাইকারি দাম কার্যকর হবে কত পরিমাণ থেকে?</label>
+      <input type="number" id="pf-wholesale-threshold" class="field-input" placeholder="যেমনঃ ৫">
+      <div class="field-row">
+        <div>
+          <label class="field-label">বর্তমান স্টক</label>
+          <input type="number" id="pf-stock" class="field-input" placeholder="০">
+        </div>
+        <div>
+          <label class="field-label">কম স্টক এলার্ট</label>
+          <input type="number" id="pf-low-stock" class="field-input" placeholder="যেমনঃ ৫">
+        </div>
+      </div>
+      <label class="field-label">ক্রয় মূল্য (ঐচ্ছিক, লাভ হিসাবের জন্য)</label>
+      <input type="number" id="pf-cost-price" class="field-input" placeholder="০">
+      <button class="btn btn-primary btn-lg btn-block" id="btn-save-product">সংরক্ষণ করুন</button>
+      <button class="btn btn-danger-ghost btn-block" id="btn-delete-product" style="display:none;">পণ্য মুছে ফেলুন</button>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-customer">
+    <div class="modal-head"><h3>নতুন কাস্টমার</h3><button class="modal-close" data-close>✕</button></div>
+    <div class="modal-body">
+      <label class="field-label">কাস্টমারের নাম</label>
+      <input type="text" id="cf-name" class="field-input" placeholder="নাম লিখুন">
+      <label class="field-label">মোবাইল নম্বর (ঐচ্ছিক)</label>
+      <input type="text" id="cf-phone" class="field-input" placeholder="০১৭xxxxxxxx">
+      <label class="field-label">ঠিকানা (ঐচ্ছিক)</label>
+      <input type="text" id="cf-address" class="field-input" placeholder="যেমনঃ মিরপুর-১০, ঢাকা">
+      <label class="field-label">এখন কত টাকা বাকি আছে (ঐচ্ছিক)</label>
+      <input type="number" id="cf-initial-due" class="field-input" placeholder="০ — যদি আগে থেকে বাকি থাকে তবে লিখুন">
+      <button class="btn btn-primary btn-lg btn-block" id="btn-save-customer">সংরক্ষণ করুন</button>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-customer-detail">
+    <div class="modal-head"><h3 id="cd-name">কাস্টমার</h3><button class="modal-close" data-close>✕</button></div>
+    <div class="modal-body">
+      <p class="form-hint" id="cd-contact" style="margin-bottom:14px;"></p>
+      <div class="due-highlight">
+        <span>মোট বাকি</span>
+        <span id="cd-due">৳০</span>
+      </div>
+      <div class="two-btn-row">
+        <button class="btn btn-primary btn-block" id="btn-collect-payment">জমা নিন</button>
+        <button class="btn btn-ghost-red btn-block" id="btn-add-due">+ নতুন বাকি যোগ করুন</button>
+      </div>
+      <h4 class="section-subtitle">লেনদেনের ইতিহাস</h4>
+      <div class="list-stack" id="cd-transactions"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-collect">
+    <div class="modal-head"><h3>টাকা জমা নিন</h3><button class="modal-close" data-close>✕</button></div>
+    <div class="modal-body">
+      <label class="field-label">জমার পরিমাণ (৳)</label>
+      <input type="number" id="collect-amount" class="field-input" placeholder="০">
+      <button class="btn btn-primary btn-lg btn-block" id="btn-confirm-collect">জমা নিশ্চিত করুন</button>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-add-due">
+    <div class="modal-head"><h3>নতুন বাকি যোগ করুন</h3><button class="modal-close" data-close>✕</button></div>
+    <div class="modal-body">
+      <label class="field-label">কত টাকা বাকি</label>
+      <input type="number" id="add-due-amount" class="field-input" placeholder="০">
+      <label class="field-label">তারিখ</label>
+      <input type="date" id="add-due-date" class="field-input">
+      <label class="field-label">বিবরণ (ঐচ্ছিক)</label>
+      <input type="text" id="add-due-note" class="field-input" placeholder="যেমনঃ চাল ৫ কেজি, তেল ২ লিটার">
+      <button class="btn btn-primary btn-lg btn-block" id="btn-confirm-add-due">যোগ করুন</button>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-expense">
+    <div class="modal-head"><h3>নতুন খরচ</h3><button class="modal-close" data-close>✕</button></div>
+    <div class="modal-body">
+      <label class="field-label">খরচের খাত</label>
+      <select id="ef-category" class="field-input">
+        <option value="ভাড়া">ভাড়া</option>
+        <option value="বিদ্যুৎ">বিদ্যুৎ বিল</option>
+        <option value="পরিবহন">পরিবহন</option>
+        <option value="বেতন">স্টাফ বেতন</option>
+        <option value="অন্যান্য">অন্যান্য</option>
+      </select>
+      <label class="field-label">পরিমাণ (৳)</label>
+      <input type="number" id="ef-amount" class="field-input" placeholder="০">
+      <label class="field-label">নোট (ঐচ্ছিক)</label>
+      <input type="text" id="ef-note" class="field-input" placeholder="বিস্তারিত লিখুন">
+      <button class="btn btn-primary btn-lg btn-block" id="btn-save-expense">সংরক্ষণ করুন</button>
+    </div>
+  </div>
+
+  <div class="modal modal-small" id="modal-edit-shop">
+    <div class="modal-head"><h3>দোকানের তথ্য সম্পাদনা</h3><button class="modal-close" data-close>✕</button></div>
+    <div class="modal-body">
+      <label class="field-label">দোকানের নাম</label>
+      <input type="text" id="esf-name" class="field-input" placeholder="দোকানের নাম">
+      <label class="field-label">ঠিকানা</label>
+      <input type="text" id="esf-address" class="field-input" placeholder="দোকানের ঠিকানা">
+
+      <label class="field-label">যোগাযোগের নাম্বার</label>
+      <div id="esf-contacts-list"></div>
+      <button class="btn btn-ghost-red btn-sm" id="btn-add-contact-row" type="button">+ আরেকটা নাম্বার যোগ করুন</button>
+
+      <label class="field-label">দোকান/মালিকের ছবি</label>
+      <div class="photo-thumb-grid" id="esf-photo-grid"></div>
+      <button class="btn btn-ghost-red btn-sm" id="btn-add-photo" type="button">+ ছবি যোগ করুন</button>
+      <input type="file" id="esf-photo-input" accept="image/*" style="display:none;">
+      <p class="form-hint" style="margin-top:6px;font-size:12px;">সর্বোচ্চ ৬টি ছবি, প্রতিটি স্বয়ংক্রিয়ভাবে ছোট করে সংরক্ষণ করা হবে</p>
+
+      <button class="btn btn-primary btn-lg btn-block" id="btn-save-shop-info" style="margin-top:18px;">সংরক্ষণ করুন</button>
+    </div>
+  </div>
+
+  <div class="modal modal-small" id="modal-invite">
+    <div class="modal-head"><h3>দোকান তৈরি হয়েছে!</h3><button class="modal-close" data-close>✕</button></div>
+    <div class="modal-body">
+      <p class="form-hint">এই কোডটি আপনার স্টাফদের দিন — তারা এই কোড দিয়ে অ্যাপে যোগ দিতে পারবে।</p>
+      <div class="invite-code-box" id="invite-code-display">০০০০০০</div>
+      <button class="btn btn-primary btn-lg btn-block" id="btn-invite-ok">বুঝেছি, শুরু করি</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDK (compat, no build tools needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

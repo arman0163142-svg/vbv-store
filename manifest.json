@@ -1,0 +1,13 @@
+{
+  "name": "ভাই বোন ভ্যারাইটিজ স্টোর",
+  "short_name": "ভাই বোন স্টোর",
+  "description": "দোকানের হিসাবের ডিজিটাল খাতা",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#7A2131",
+  "theme_color": "#7A2131",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

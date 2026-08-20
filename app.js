@@ -134,6 +134,7 @@ const state = {
   shopPhotos: [],
   editingPhotos: [],
   dailyCashAmount: null,
+  cashEntries: [],
   companyBills: [], // working copy while modal is open
   staffName: '',
   uid: null,
@@ -348,6 +349,11 @@ function attachListeners(){
     renderDailyCashCard();
   }, err => handleSyncError(err));
 
+  shopRef().collection('dailyCash').doc(todayKey()).collection('entries').orderBy('createdAt', 'desc').onSnapshot(snap => {
+    state.cashEntries = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    renderDailyCashCard();
+  }, err => handleSyncError(err));
+
   shopRef().collection('companyBills').orderBy('createdAt', 'desc').limit(200).onSnapshot(snap => {
     state.companyBills = snap.docs.map(d => ({id: d.id, ...d.data()}));
     renderCompanyBills();
@@ -441,6 +447,9 @@ document.getElementById('btn-save-shop-info').addEventListener('click', async ()
   } finally { btn.disabled = false; btn.textContent = 'সংরক্ষণ করুন'; }
 });
 
+function cashTopupTotal(){ return state.cashEntries.filter(e=>e.type==='topup').reduce((a,e)=>a+(e.amount||0),0); }
+function cashBillTotal(){ return state.cashEntries.filter(e=>e.type==='bill').reduce((a,e)=>a+(e.amount||0),0); }
+
 function renderDailyCashCard(){
   const labelEl = document.getElementById('daily-cash-label');
   const valueEl = document.getElementById('daily-cash-value');
@@ -448,13 +457,21 @@ function renderDailyCashCard(){
     labelEl.textContent = 'আজকের ক্যাশ (সকালের) লিখতে ট্যাপ করুন';
     valueEl.textContent = '';
   } else {
-    labelEl.textContent = 'আজকের সকালের ক্যাশ';
-    valueEl.textContent = money(state.dailyCashAmount);
+    const balance = state.dailyCashAmount + cashTopupTotal() - cashBillTotal();
+    labelEl.textContent = 'ক্যাশে এখন থাকার কথা (বিস্তারিত দেখতে ট্যাপ করুন)';
+    valueEl.textContent = money(balance);
   }
 }
+
 document.getElementById('daily-cash-card').addEventListener('click', () => {
-  document.getElementById('dc-amount').value = state.dailyCashAmount ?? '';
-  openModal('modal-daily-cash');
+  if (state.dailyCashAmount === null){
+    document.getElementById('dc-modal-title').textContent = 'আজকের ক্যাশ';
+    document.getElementById('dc-amount').value = '';
+    openModal('modal-daily-cash');
+  } else {
+    renderCashDetail();
+    openModal('modal-cash-detail');
+  }
 });
 document.getElementById('btn-save-daily-cash').addEventListener('click', async () => {
   const amount = Number(document.getElementById('dc-amount').value) || 0;
@@ -463,10 +480,65 @@ document.getElementById('btn-save-daily-cash').addEventListener('click', async (
   try{
     await shopRef().collection('dailyCash').doc(todayKey()).set({
       amount, staffName: state.staffName, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
+    }, { merge: true });
     closeModals(); toast('আজকের ক্যাশ সংরক্ষণ করা হয়েছে');
   } catch(e){ console.error(e); toast('সমস্যা হয়েছে'); }
   finally{ btn.disabled=false; btn.textContent='সংরক্ষণ করুন'; }
+});
+
+function renderCashDetail(){
+  const opening = state.dailyCashAmount || 0;
+  const topup = cashTopupTotal();
+  const bills = cashBillTotal();
+  document.getElementById('cashd-opening').textContent = money(opening);
+  document.getElementById('cashd-topup').textContent = money(topup);
+  document.getElementById('cashd-bills').textContent = money(bills);
+  document.getElementById('cashd-balance').textContent = money(opening + topup - bills);
+
+  const list = document.getElementById('cashd-entries');
+  list.innerHTML = '';
+  if (!state.cashEntries.length){
+    list.innerHTML = '<p class="empty-note">আজ এখনো কোনো যোগ/বিল হয়নি</p>';
+  } else {
+    state.cashEntries.forEach(e => {
+      const div = document.createElement('div');
+      div.className = 'list-card';
+      const time = e.createdAt && e.createdAt.toDate ? e.createdAt.toDate().toLocaleTimeString('bn-BD',{hour:'2-digit',minute:'2-digit'}) : '';
+      const title = e.type === 'topup' ? (e.note || 'অতিরিক্ত ক্যাশ যোগ') : `${e.companyName || 'কোম্পানি'} বিল`;
+      div.innerHTML = `
+        <div class="list-card-main">
+          <span class="list-card-title">${title}</span>
+          <span class="list-card-sub">${time} · ${e.staffName||''}</span>
+        </div>
+        <span class="list-card-value ${e.type==='topup'?'ok':'due'}">${e.type==='topup'?'+':'−'}${money(e.amount)}</span>`;
+      list.appendChild(div);
+    });
+  }
+}
+document.getElementById('btn-edit-opening').addEventListener('click', () => {
+  document.getElementById('dc-modal-title').textContent = 'সকালের ক্যাশ বদলান';
+  document.getElementById('dc-amount').value = state.dailyCashAmount ?? '';
+  openModal('modal-daily-cash');
+});
+document.getElementById('btn-open-add-topup').addEventListener('click', () => {
+  document.getElementById('topup-amount').value = '';
+  document.getElementById('topup-note').value = '';
+  openModal('modal-topup');
+});
+document.getElementById('btn-save-topup').addEventListener('click', async () => {
+  const amount = Number(document.getElementById('topup-amount').value) || 0;
+  const note = document.getElementById('topup-note').value.trim();
+  if (amount <= 0){ toast('সঠিক পরিমাণ দিন'); return; }
+  const btn = document.getElementById('btn-save-topup');
+  btn.disabled = true; btn.textContent = 'যোগ হচ্ছে…';
+  try{
+    await shopRef().collection('dailyCash').doc(todayKey()).set({ staffName: state.staffName }, { merge: true });
+    await shopRef().collection('dailyCash').doc(todayKey()).collection('entries').add({
+      type: 'topup', amount, note, staffName: state.staffName, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    closeModals(); toast('ক্যাশ যোগ করা হয়েছে');
+  } catch(e){ console.error(e); toast('সমস্যা হয়েছে'); }
+  finally{ btn.disabled=false; btn.textContent='যোগ করুন'; }
 });
 
 // ============================================================
@@ -1053,18 +1125,26 @@ document.getElementById('btn-save-company-bill').addEventListener('click', async
   const amount = Number(document.getElementById('cb-amount').value) || 0;
   const dateStr = document.getElementById('cb-date').value;
   const note = document.getElementById('cb-note').value.trim();
+  const fromCash = document.getElementById('cb-from-cash').checked;
   if (!companyName){ toast('কোম্পানির নাম দিন'); return; }
   if (amount <= 0){ toast('সঠিক পরিমাণ দিন'); return; }
   const btn = document.getElementById('btn-save-company-bill');
   btn.disabled = true; btn.textContent = 'সংরক্ষণ হচ্ছে…';
   try{
     let createdAt = firebase.firestore.FieldValue.serverTimestamp();
+    const dateKey = dateStr || todayKey();
     if (dateStr){
       const [yy,mm,dd] = dateStr.split('-').map(Number);
       const now = new Date();
       createdAt = firebase.firestore.Timestamp.fromDate(new Date(yy, mm-1, dd, now.getHours(), now.getMinutes()));
     }
     await shopRef().collection('companyBills').add({ companyName, amount, note, staffName: state.staffName, createdAt });
+    if (fromCash){
+      await shopRef().collection('dailyCash').doc(dateKey).set({ staffName: state.staffName }, { merge: true });
+      await shopRef().collection('dailyCash').doc(dateKey).collection('entries').add({
+        type: 'bill', amount, companyName, note, staffName: state.staffName, createdAt,
+      });
+    }
     closeModals(); toast('বিল যোগ করা হয়েছে');
   } catch(e){ console.error(e); toast('সমস্যা হয়েছে'); }
   finally{ btn.disabled=false; btn.textContent='সংরক্ষণ করুন'; }

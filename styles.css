@@ -338,6 +338,19 @@ input[type="number"]{ -moz-appearance: textfield; }
 .due-highlight span:last-child{ font-family: var(--font-display); font-weight:700; font-size:22px; color: var(--rust); }
 .two-btn-row{ display:flex; gap:10px; margin-bottom:16px; }
 .two-btn-row .btn{ flex:1; }
+.checkbox-row{ display:flex; align-items:center; gap:10px; margin:16px 0 4px; font-size:14px; color: var(--ink-soft); font-weight:600; }
+.checkbox-row input{ width:18px; height:18px; accent-color: var(--red); }
+.cash-summary-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.cash-summary-item{
+  background: var(--white); border-radius: var(--radius-sm); padding:10px 12px;
+  display:flex; flex-direction:column; gap:2px; box-shadow: var(--shadow-card);
+}
+.cash-summary-item span:first-child{ font-size:11.5px; color: var(--ink-soft); font-weight:600; }
+.cash-summary-item span:last-child{ font-family: var(--font-display); font-weight:700; font-size:16px; }
+.cash-summary-item.ok span:last-child{ color: var(--green); }
+.cash-summary-item.due span:last-child{ color: var(--rust); }
+.cash-summary-item.total{ grid-column: 1 / -1; background: var(--cream-deep); }
+.cash-summary-item.total span:last-child{ font-size:19px; color: var(--red); }
 
 .invite-code-box{
   font-family: var(--font-display); font-size:34px; font-weight:800; letter-spacing:8px;

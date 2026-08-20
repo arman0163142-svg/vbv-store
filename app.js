@@ -132,7 +132,9 @@ const state = {
   shopAddress: '',
   shopContacts: [],
   shopPhotos: [],
-  editingPhotos: [], // working copy while modal is open
+  editingPhotos: [],
+  dailyCashAmount: null,
+  companyBills: [], // working copy while modal is open
   staffName: '',
   uid: null,
   products: [],
@@ -152,6 +154,11 @@ function initFirebase(){
   firebase.initializeApp(window.FIREBASE_CONFIG);
   auth = firebase.auth();
   db = firebase.firestore();
+}
+
+function todayKey(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
 function genCode(){
@@ -336,6 +343,16 @@ function attachListeners(){
     renderExpenses();
   }, err => handleSyncError(err));
 
+  shopRef().collection('dailyCash').doc(todayKey()).onSnapshot(doc => {
+    state.dailyCashAmount = doc.exists ? doc.data().amount : null;
+    renderDailyCashCard();
+  }, err => handleSyncError(err));
+
+  shopRef().collection('companyBills').orderBy('createdAt', 'desc').limit(200).onSnapshot(snap => {
+    state.companyBills = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    renderCompanyBills();
+  }, err => handleSyncError(err));
+
   document.getElementById('sync-dot').classList.remove('offline');
   document.getElementById('sync-label').textContent = 'সিঙ্ক হচ্ছে';
 }
@@ -422,6 +439,34 @@ document.getElementById('btn-save-shop-info').addEventListener('click', async ()
     if (e && e.message && e.message.includes('exceeds')) toast('ছবিগুলো একসাথে বেশি বড়, কিছু ছবি বাদ দিয়ে আবার চেষ্টা করুন');
     else toast('সমস্যা হয়েছে');
   } finally { btn.disabled = false; btn.textContent = 'সংরক্ষণ করুন'; }
+});
+
+function renderDailyCashCard(){
+  const labelEl = document.getElementById('daily-cash-label');
+  const valueEl = document.getElementById('daily-cash-value');
+  if (state.dailyCashAmount === null){
+    labelEl.textContent = 'আজকের ক্যাশ (সকালের) লিখতে ট্যাপ করুন';
+    valueEl.textContent = '';
+  } else {
+    labelEl.textContent = 'আজকের সকালের ক্যাশ';
+    valueEl.textContent = money(state.dailyCashAmount);
+  }
+}
+document.getElementById('daily-cash-card').addEventListener('click', () => {
+  document.getElementById('dc-amount').value = state.dailyCashAmount ?? '';
+  openModal('modal-daily-cash');
+});
+document.getElementById('btn-save-daily-cash').addEventListener('click', async () => {
+  const amount = Number(document.getElementById('dc-amount').value) || 0;
+  const btn = document.getElementById('btn-save-daily-cash');
+  btn.disabled = true; btn.textContent = 'সংরক্ষণ হচ্ছে…';
+  try{
+    await shopRef().collection('dailyCash').doc(todayKey()).set({
+      amount, staffName: state.staffName, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    closeModals(); toast('আজকের ক্যাশ সংরক্ষণ করা হয়েছে');
+  } catch(e){ console.error(e); toast('সমস্যা হয়েছে'); }
+  finally{ btn.disabled=false; btn.textContent='সংরক্ষণ করুন'; }
 });
 
 // ============================================================
@@ -962,6 +1007,67 @@ document.getElementById('btn-save-expense').addEventListener('click', async () =
     document.getElementById('ef-amount').value=''; document.getElementById('ef-note').value='';
     closeModals(); toast('খরচ যোগ করা হয়েছে');
   } catch(e){ console.error(e); toast('সমস্যা হয়েছে'); }
+});
+
+// ============================================================
+// COMPANY BILLS (log of payments made to suppliers/companies)
+// ============================================================
+document.querySelectorAll('.expense-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.expense-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const isCompany = btn.dataset.etab === 'company';
+    document.getElementById('expense-tab-general').style.display = isCompany ? 'none' : 'block';
+    document.getElementById('expense-tab-company').style.display = isCompany ? 'block' : 'none';
+  });
+});
+
+function renderCompanyBills(){
+  const monthTotal = state.companyBills.filter(b=>isThisMonth(b.createdAt)).reduce((a,b)=>a+(b.amount||0),0);
+  document.getElementById('stat-month-company-bill').textContent = money(monthTotal);
+  const list = document.getElementById('company-bills-list');
+  list.innerHTML = '';
+  if (!state.companyBills.length){ list.innerHTML = '<p class="empty-note">এখনো কোনো কোম্পানির বিল যোগ হয়নি</p>'; return; }
+  state.companyBills.forEach(b => {
+    const div = document.createElement('div');
+    div.className = 'list-card';
+    const date = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().toLocaleDateString('bn-BD') : '';
+    div.innerHTML = `
+      <div class="list-card-main">
+        <span class="list-card-title">${b.companyName}</span>
+        <span class="list-card-sub">${b.note||''} · ${date} · ${b.staffName||''}</span>
+      </div>
+      <span class="list-card-value due">${money(b.amount)}</span>`;
+    list.appendChild(div);
+  });
+}
+document.getElementById('btn-add-company-bill').addEventListener('click', () => {
+  document.getElementById('cb-company-name').value = '';
+  document.getElementById('cb-amount').value = '';
+  document.getElementById('cb-note').value = '';
+  document.getElementById('cb-date').value = new Date().toISOString().slice(0,10);
+  openModal('modal-company-bill');
+});
+document.getElementById('btn-save-company-bill').addEventListener('click', async () => {
+  const companyName = document.getElementById('cb-company-name').value.trim();
+  const amount = Number(document.getElementById('cb-amount').value) || 0;
+  const dateStr = document.getElementById('cb-date').value;
+  const note = document.getElementById('cb-note').value.trim();
+  if (!companyName){ toast('কোম্পানির নাম দিন'); return; }
+  if (amount <= 0){ toast('সঠিক পরিমাণ দিন'); return; }
+  const btn = document.getElementById('btn-save-company-bill');
+  btn.disabled = true; btn.textContent = 'সংরক্ষণ হচ্ছে…';
+  try{
+    let createdAt = firebase.firestore.FieldValue.serverTimestamp();
+    if (dateStr){
+      const [yy,mm,dd] = dateStr.split('-').map(Number);
+      const now = new Date();
+      createdAt = firebase.firestore.Timestamp.fromDate(new Date(yy, mm-1, dd, now.getHours(), now.getMinutes()));
+    }
+    await shopRef().collection('companyBills').add({ companyName, amount, note, staffName: state.staffName, createdAt });
+    closeModals(); toast('বিল যোগ করা হয়েছে');
+  } catch(e){ console.error(e); toast('সমস্যা হয়েছে'); }
+  finally{ btn.disabled=false; btn.textContent='সংরক্ষণ করুন'; }
 });
 
 // ---------- Register service worker ----------

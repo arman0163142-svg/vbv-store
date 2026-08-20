@@ -511,6 +511,18 @@ function renderCashDetail(){
           <span class="list-card-sub">${time} · ${e.staffName||''}</span>
         </div>
         <span class="list-card-value ${e.type==='topup'?'ok':'due'}">${e.type==='topup'?'+':'−'}${money(e.amount)}</span>`;
+      div.addEventListener('click', async () => {
+        if (!confirm(`"${title}" - ${money(e.amount)} এন্ট্রিটা মুছে ফেলবেন?`)) return;
+        try{
+          await shopRef().collection('dailyCash').doc(todayKey()).collection('entries').doc(e.id).delete();
+          if (e.type === 'bill'){
+            // Also unlink from the company bill doc if this entry was created from one
+            const match = state.companyBills.find(b => b.cashEntryId === e.id);
+            if (match) await shopRef().collection('companyBills').doc(match.id).update({ cashEntryId: firebase.firestore.FieldValue.delete(), cashEntryDateKey: firebase.firestore.FieldValue.delete() }).catch(()=>{});
+          }
+          toast('মুছে ফেলা হয়েছে');
+        } catch(err){ console.error(err); toast('সমস্যা হয়েছে'); }
+      });
       list.appendChild(div);
     });
   }
@@ -1065,6 +1077,11 @@ function renderExpenses(){
         <span class="list-card-sub">${e.note||''} · ${date} · ${e.staffName||''}</span>
       </div>
       <span class="list-card-value due">${money(e.amount)}</span>`;
+    div.addEventListener('click', async () => {
+      if (!confirm(`"${e.category}" - ${money(e.amount)} খরচের এন্ট্রিটা মুছে ফেলবেন?`)) return;
+      try{ await shopRef().collection('expenses').doc(e.id).delete(); toast('মুছে ফেলা হয়েছে'); }
+      catch(err){ console.error(err); toast('সমস্যা হয়েছে'); }
+    });
     list.appendChild(div);
   });
 }
@@ -1110,6 +1127,16 @@ function renderCompanyBills(){
         <span class="list-card-sub">${b.note||''} · ${date} · ${b.staffName||''}</span>
       </div>
       <span class="list-card-value due">${money(b.amount)}</span>`;
+    div.addEventListener('click', async () => {
+      if (!confirm(`"${b.companyName}" - ${money(b.amount)} বিলের এন্ট্রিটা মুছে ফেলবেন?`)) return;
+      try{
+        await shopRef().collection('companyBills').doc(b.id).delete();
+        if (b.cashEntryId && b.cashEntryDateKey){
+          await shopRef().collection('dailyCash').doc(b.cashEntryDateKey).collection('entries').doc(b.cashEntryId).delete().catch(()=>{});
+        }
+        toast('মুছে ফেলা হয়েছে');
+      } catch(err){ console.error(err); toast('সমস্যা হয়েছে'); }
+    });
     list.appendChild(div);
   });
 }
@@ -1138,12 +1165,13 @@ document.getElementById('btn-save-company-bill').addEventListener('click', async
       const now = new Date();
       createdAt = firebase.firestore.Timestamp.fromDate(new Date(yy, mm-1, dd, now.getHours(), now.getMinutes()));
     }
-    await shopRef().collection('companyBills').add({ companyName, amount, note, staffName: state.staffName, createdAt });
+    const billRef = await shopRef().collection('companyBills').add({ companyName, amount, note, staffName: state.staffName, createdAt });
     if (fromCash){
       await shopRef().collection('dailyCash').doc(dateKey).set({ staffName: state.staffName }, { merge: true });
-      await shopRef().collection('dailyCash').doc(dateKey).collection('entries').add({
+      const entryRef = await shopRef().collection('dailyCash').doc(dateKey).collection('entries').add({
         type: 'bill', amount, companyName, note, staffName: state.staffName, createdAt,
       });
+      await billRef.update({ cashEntryId: entryRef.id, cashEntryDateKey: dateKey });
     }
     closeModals(); toast('বিল যোগ করা হয়েছে');
   } catch(e){ console.error(e); toast('সমস্যা হয়েছে'); }

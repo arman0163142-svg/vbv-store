@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 320">
+  <defs>
+    <radialGradient id="bg2" cx="30%" cy="20%" r="90%">
+      <stop offset="0%" stop-color="#93283A"/>
+      <stop offset="100%" stop-color="#5C1826"/>
+    </radialGradient>
+  </defs>
+  <rect width="900" height="320" rx="28" fill="url(#bg2)"/>
+
+  <!-- badge -->
+  <circle cx="150" cy="160" r="98" fill="none" stroke="#D9B978" stroke-width="5"/>
+  <circle cx="150" cy="160" r="87" fill="none" stroke="#D9B978" stroke-width="1.5" stroke-dasharray="1 8" stroke-linecap="round"/>
+  <text x="150" y="152" text-anchor="middle" font-family="'Noto Sans Bengali','Hind Siliguri',sans-serif" font-weight="800" font-size="70" fill="#F4EEDD">ভা</text>
+  <text x="150" y="205" text-anchor="middle" font-family="'Noto Sans Bengali','Hind Siliguri',sans-serif" font-weight="700" font-size="36" fill="#D9B978">বো</text>
+
+  <!-- divider -->
+  <line x1="278" y1="70" x2="278" y2="250" stroke="#D9B978" stroke-width="1.5" opacity="0.5"/>
+
+  <!-- wordmark -->
+  <text x="310" y="165" font-family="'Noto Sans Bengali','Hind Siliguri',sans-serif" font-weight="800" font-size="56" fill="#F4EEDD">ভাই বোন ভ্যারাইটিজ স্টোর</text>
+  <text x="310" y="205" font-family="'Noto Sans Bengali','Hind Siliguri',sans-serif" font-weight="500" font-size="30" fill="#D9B978" letter-spacing="1">আপনার আস্থার ঠিকানা</text>
+
+  <!-- decorative stitched underline -->
+  <line x1="310" y1="228" x2="700" y2="228" stroke="#D9B978" stroke-width="2" stroke-dasharray="1 7" stroke-linecap="round" opacity="0.7"/>
+</svg>
